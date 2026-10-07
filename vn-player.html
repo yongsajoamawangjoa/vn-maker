@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>미연시 플레이어</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1c1730;--glass:rgba(28,23,48,.86);--rose:#e7a6b6;--lilac:#b9addb;--paper:#f6f1fb;--box:.84;
+ --serif:"Gowun Batang","Noto Serif KR",Batang,serif;--sans:"Gowun Dodum","Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#000;overflow:hidden}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans);user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--rose);outline-offset:6px;border-radius:8px}
+button:disabled{cursor:default}
+#game{position:absolute;inset:0}
+.bg{position:absolute;inset:0;overflow:hidden;opacity:0;transition:opacity .7s ease}
+.bg i{position:absolute;inset:-60px;background:center/cover no-repeat;filter:blur(36px) brightness(.45)}
+.bg b{position:absolute;inset:0;background:center/contain no-repeat}
+.bg.on{opacity:1}
+#chars{position:absolute;inset:0;pointer-events:none;z-index:3}
+.ch{position:absolute;bottom:0;height:900px;transform:translateX(-50%) scale(var(--s,1));transform-origin:50% 100%;transition:left .45s ease,transform .45s ease,opacity .45s ease,filter .35s ease}
+.ch img{height:100%;display:block}
+.ch.dim{filter:brightness(.6) saturate(.85)}
+.ch img.jump{animation:jump .55s ease-out}
+.ch img.shake{animation:shake .55s linear}
+@keyframes jump{0%,100%{transform:translateY(0)}35%{transform:translateY(-80px)}55%{transform:translateY(0)}72%{transform:translateY(-24px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}12%{transform:translateX(-26px)}25%{transform:translateX(22px)}38%{transform:translateX(-18px)}52%{transform:translateX(14px)}66%{transform:translateX(-8px)}80%{transform:translateX(4px)}}
+#ui{position:absolute;inset:0;z-index:5;pointer-events:none;transition:opacity .25s}
+#box{position:absolute;left:160px;right:160px;bottom:44px;height:320px;background:rgba(28,23,48,var(--box));border:1px solid rgba(246,241,251,.16);border-radius:22px;padding:56px 64px 0;pointer-events:auto}
+#name{position:absolute;left:44px;top:-30px;min-width:200px;padding:10px 30px;background:var(--rose);color:var(--ink);font:700 34px/1.2 var(--serif);border-radius:14px;letter-spacing:.04em;text-align:center}
+#name:empty{display:none}
+#text{font:400 39px/1.75 var(--serif);white-space:pre-wrap;word-break:keep-all;height:205px;overflow:hidden}
+#next{position:absolute;right:64px;bottom:72px;width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:18px solid var(--rose);opacity:0}
+#next.on{opacity:1;animation:bob 1s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(8px)}}
+#qm{position:absolute;right:48px;bottom:16px;display:flex;gap:26px;font-size:22px;color:var(--lilac)}
+#qm button:hover,#qm button.act{color:var(--rose)}
+#choices{position:absolute;inset:0 0 380px 0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px}
+#choices:empty{display:none}
+#choices button{width:1040px;padding:24px 40px;font:400 36px/1.4 var(--serif);background:rgba(28,23,48,.88);border:1px solid rgba(246,241,251,.22);border-radius:18px;transition:border-color .2s,background .2s}
+#choices button:hover,#choices button:focus-visible{border-color:var(--rose);background:rgba(64,42,76,.94)}
+#mode{position:absolute;right:60px;top:44px;z-index:6;font-size:24px;color:var(--rose);background:var(--glass);padding:8px 22px;border-radius:999px}
+#mode:empty{display:none}
+#stage.hide #ui,#stage.hide #choices,#stage.hide #mode{opacity:0;pointer-events:none}
+.scr{position:absolute;inset:0;z-index:10;display:none}
+.scr.on{display:block}
+#tbg{position:absolute;inset:-40px;background:var(--ink) center/cover;filter:blur(14px) brightness(.5)}
+#tname{position:absolute;left:150px;top:290px;margin:0;font:700 124px/1.1 var(--serif);letter-spacing:.12em;text-shadow:0 6px 40px rgba(0,0,0,.45)}
+#tline{position:absolute;left:156px;top:450px;width:420px;height:2px;background:var(--rose)}
+#tmenu{position:absolute;left:150px;top:530px;display:flex;flex-direction:column;align-items:flex-start;gap:18px}
+#tmenu button{font:400 40px/1.3 var(--serif);color:var(--lilac);transition:color .2s,transform .2s}
+#tmenu button:hover,#tmenu button:focus-visible{color:var(--paper);transform:translateX(12px)}
+#tmenu button[hidden]{display:none}
+#loader{background:radial-gradient(circle at 30% 20%,#2c2247,var(--ink) 70%)}
+#loader.on{display:flex;align-items:center;justify-content:center}
+#drop{width:1120px;padding:90px 80px;border:2px dashed rgba(246,241,251,.3);border-radius:28px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+#drop.over,#drop:hover{border-color:var(--rose);background:rgba(231,166,182,.06)}
+#drop h1{font:700 64px/1.3 var(--serif);margin:0 0 26px}
+#drop p{font-size:29px;line-height:1.75;color:var(--lilac);margin:0}
+#err{color:var(--rose);margin-top:30px;font-size:29px;min-height:1.2em}
+#end{background:rgba(28,23,48,.94)}
+#end.on{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:56px;animation:fade 1.4s ease}
+#end h2{font:700 110px var(--serif);letter-spacing:.4em;margin:0 0 0 .4em}
+@keyframes fade{from{opacity:0}}
+#ebg{position:absolute;inset:-60px;background:center/cover no-repeat;filter:blur(36px) brightness(.45)}
+#eimg{position:absolute;inset:0;background:center/contain no-repeat}
+#end h2,#end .btn{position:relative}
+#end h2{max-width:1600px;text-align:center;word-break:keep-all;text-shadow:0 4px 30px rgba(0,0,0,.5)}
+#end h2.long{font-size:72px;line-height:1.35;letter-spacing:.06em;margin:0}
+#end h2{white-space:pre-line}
+#end h2.para{font-size:46px;line-height:1.75;letter-spacing:.02em;font-weight:400;margin:0}
+.btn{font:400 30px var(--sans);padding:16px 46px;border:1px solid rgba(246,241,251,.3);border-radius:999px;color:var(--paper);transition:border-color .2s,color .2s}
+.btn:hover{border-color:var(--rose);color:var(--rose)}
+.btn.main{background:var(--rose);border-color:var(--rose);color:var(--ink)}
+.btn.main:hover{color:var(--ink);filter:brightness(1.06)}
+#ov{position:absolute;inset:0;z-index:20;background:rgba(12,10,22,.74);display:none;align-items:center;justify-content:center}
+#ov.on{display:flex}
+.panel{width:1560px;height:900px;background:var(--glass);border:1px solid rgba(246,241,251,.16);border-radius:26px;display:flex;flex-direction:column;padding:40px 56px 48px}
+.panel.small{width:1000px;height:auto}
+.panel header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.panel h2{font:700 48px var(--serif);margin:0}
+.x{font-size:48px;line-height:1;color:var(--lilac);width:64px;height:64px}.x:hover{color:var(--rose)}
+.body{flex:1;overflow:auto;padding-right:14px;user-select:text;-webkit-user-select:text}
+.empty{color:var(--lilac);font-size:30px}
+.log{padding:18px 0;border-bottom:1px solid rgba(246,241,251,.08)}
+.log b{display:block;color:var(--rose);font:700 26px var(--serif);margin-bottom:6px}
+.log p{margin:0;font:400 32px/1.7 var(--serif);white-space:pre-wrap}
+.log.pick p{color:var(--lilac)}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.slot{position:relative;height:214px;border-radius:18px;overflow:hidden;border:1px solid rgba(246,241,251,.16);background:#2a2340 center/contain no-repeat;text-align:left;transition:border-color .2s}
+.slot:hover:not(:disabled){border-color:var(--rose)}
+.slot .cap{position:absolute;inset:auto 0 0 0;padding:40px 22px 16px;background:linear-gradient(transparent,rgba(20,16,34,.94) 45%);font-size:22px;line-height:1.45}
+.slot .cap b{color:var(--rose);font-weight:400;margin-right:12px}
+.slot .cap span{display:block;color:var(--lilac);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.slot.empty{display:flex;align-items:center;justify-content:center;color:rgba(246,241,251,.4);font-size:26px}
+.set{display:grid;grid-template-columns:380px 1fr 150px;align-items:center;gap:34px 34px;font-size:30px;max-width:1300px}
+.set input[type=range]{width:100%;accent-color:var(--rose)}
+.set input[type=checkbox]{width:34px;height:34px;accent-color:var(--rose);justify-self:start}
+.set output{color:var(--lilac);text-align:right}
+.set .btn{justify-self:start}
+.keys{margin:56px 0 0;color:var(--lilac);font-size:24px;line-height:1.9;white-space:pre-line}
+.ask p{font:400 34px/1.6 var(--serif);margin:0 0 44px}
+.row{display:flex;justify-content:flex-end;gap:20px}
+#toast{position:absolute;left:50%;top:40px;transform:translateX(-50%);z-index:30;background:var(--glass);padding:14px 32px;border-radius:999px;font-size:25px;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.on{opacity:1}
+#timg{position:absolute;inset:0;background:center/contain no-repeat}
+#tlogo{position:absolute;left:150px;bottom:600px;max-width:1100px;max-height:380px;object-fit:contain;display:none}
+#tlogo.on{display:block}
+#box.skin{background-color:transparent;background-size:100% 100%;background-repeat:no-repeat;background-position:center;border-color:transparent;border-radius:0}
+#name.skin{background-color:transparent;background-size:100% 100%;background-repeat:no-repeat;color:var(--paper);text-shadow:0 2px 6px rgba(0,0,0,.6);border-radius:0;
+ top:-36px;width:360px;min-width:0;height:72px;padding:0 24px;line-height:72px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skinChoice #choices button,.skinChoice #choices button:hover,.skinChoice #choices button:focus-visible{background-color:transparent;background-size:100% 100%;background-repeat:no-repeat;background-position:center;border-color:transparent;border-radius:0;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.skinChoice #choices button:hover,.skinChoice #choices button:focus-visible{filter:brightness(1.15)}
+@media (prefers-reduced-motion:reduce){.bg,.ch{transition:none}#next.on{animation:none}#end.on{animation:none}}
+</style></head><body>
+<div id="stage">
+ <div id="game">
+  <div class="bg"><i></i><b></b></div><div class="bg"><i></i><b></b></div>
+  <div id="chars"></div>
+  <div id="ui"><div id="box"><div id="name"></div><div id="text"></div><div id="next"></div>
+   <div id="qm"><button id="bLog">지난 대사</button><button id="bAuto">자동</button><button id="bSkip">넘기기</button><button id="bSave">저장</button><button id="bLoad">불러오기</button><button id="bQS">빠른 저장</button><button id="bQL">빠른 불러오기</button><button id="bSet">설정</button><button id="bHide">숨기기</button><button id="bTitle">타이틀</button></div>
+  </div></div>
+  <div id="choices"></div><div id="mode"></div>
+ </div>
+ <div id="title" class="scr"><div id="tbg"></div><div id="timg"></div><img id="tlogo" alt=""><h1 id="tname"></h1><div id="tline"></div>
+  <nav id="tmenu"><button id="tNew">처음부터</button><button id="tCont">이어하기</button><button id="tLoad">불러오기</button><button id="tSet">환경설정</button><button id="tOpen">다른 이야기 열기</button></nav></div>
+ <div id="loader" class="scr"><div id="drop" role="button" tabindex="0"><h1>이야기 파일을 열어 주세요</h1>
+  <p>장면 에디터에서 "게임용 내보내기"로 만든 story.json을<br>여기에 끌어다 놓거나 눌러서 선택하세요.<br>그림을 보려면 내보낼 때 "이미지 포함"을 켜야 해요.</p><div id="err"></div></div>
+  <input type="file" id="file" accept=".json,application/json" hidden></div>
+ <div id="end" class="scr"><div id="ebg"></div><div id="eimg"></div><h2 id="etext">끝</h2><button class="btn" id="endBtn">타이틀로</button></div>
+ <div id="ov"></div><div id="toast"></div>
+</div>
+<script>
+const $=s=>document.querySelector(s),stage=$('#stage'),ov=$('#ov');
+const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
+let keyboardUser=false;
+addEventListener('keydown',()=>{keyboardUser=true},true);
+addEventListener('pointerdown',()=>{keyboardUser=false},true);
+const kbFocus=(target,opts)=>{if(keyboardUser&&target)target.focus(opts)};
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
+const idb=(mode,fn)=>new Promise(res=>{try{const r=indexedDB.open('vn-player',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+ r.onsuccess=()=>{try{const tx=r.result.transaction('kv',mode),q=fn(tx.objectStore('kv'));tx.oncomplete=()=>res(q.result);tx.onerror=tx.onabort=()=>res(null)}catch(e){res(null)}};r.onerror=()=>res(null)}catch(e){res(null)}});
+const hash=s=>{let h=5381;for(let i=0;i<s.length;i++)h=(Math.imul(h,33)^s.charCodeAt(i))>>>0;return h.toString(36)};
+function fit(){const k=Math.min(innerWidth/1920,innerHeight/1080);stage.style.transform=`translate(${(innerWidth-1920*k)/2}px,${(innerHeight-1080*k)/2}px) scale(${k})`}
+addEventListener('resize',fit);fit();
+
+/* ── 설정 ── */
+const set=Object.assign({speed:45,auto:2,box:84,skipUnread:false,bgmVol:70,seVol:80},LS.get('vnp:set',{}));
+const applySet=()=>stage.style.setProperty('--box',set.box/100);
+const saveSet=()=>LS.set('vnp:set',set);
+
+/* ── 이야기 데이터 ── */
+let story=null,key='',scenes={},bgs={},poses={},aud={},read=new Set(),saves={slots:[],quick:null};
+function loadStory(obj,title){
+ if(!obj||!Array.isArray(obj.nodes)||!obj.nodes.length)throw new Error('no nodes');
+ scenes={};obj.nodes.forEach(n=>scenes[n.id]=n);
+ bgs={};(obj.backgrounds||[]).forEach(b=>{if(b&&b.data)bgs[b.name]=b.data});
+ poses={};(obj.characters||[]).forEach(c=>{if(!c||!Array.isArray(c.poses))return;poses[c.name]={};c.poses.forEach(p=>{if(p.data)poses[c.name][p.name]=p.data})});
+ aud={};(obj.audio||[]).forEach(a=>{if(a&&a.data)aud[a.name]=a.data});
+ story=obj;story.fileTitle=title;key=hash(JSON.stringify(obj.nodes));
+ read=new Set(LS.get('vnp:read:'+key,[]));saves=LS.get('vnp:save:'+key,{slots:[],quick:null});
+ return Object.keys(bgs).length>0||Object.values(poses).some(p=>Object.keys(p).length)}
+
+/* ── 소리 ── */
+let bgmEl=null,bgmName='';
+function fadeTo(a,vol,ms,then){const from=a.volume,t0=performance.now();
+ const f=now=>{const k=Math.min(1,(now-t0)/ms);a.volume=Math.max(0,Math.min(1,from+(vol-from)*k));if(k<1)requestAnimationFrame(f);else if(then)then()};requestAnimationFrame(f)}
+function playBgm(name){name=name||'';if(name===bgmName)return;const old=bgmEl;bgmName=name;bgmEl=null;
+ if(old)fadeTo(old,0,700,()=>old.pause());
+ if(!name||!aud[name])return;
+ const a=new Audio(aud[name]);a.loop=true;a.volume=0;bgmEl=a;
+ a.play().then(()=>{if(bgmEl===a)fadeTo(a,set.bgmVol/100,900)}).catch(()=>{})}
+function playSe(name){if(skip||!name||!aud[name])return;const a=new Audio(aud[name]);a.volume=set.seVol/100;a.play().catch(()=>{})}
+
+/* ── UI 꾸미기 ── */
+function fitName(){const n=$('#name');n.style.fontSize='';if(!n.classList.contains('skin')||!n.textContent)return;
+ let size=34;while(n.scrollWidth>n.clientWidth&&size>20){size-=2;n.style.fontSize=size+'px'}}
+let titleImg=null,titleLogo=null,choiceImg=null,endImg=null,fontFace=null;
+function applySkin(ui){const u=k=>ui&&ui[k]&&ui[k].data||null;
+ const skin=(sel,src)=>{const e=$(sel);e.classList.toggle('skin',!!src);e.style.backgroundImage=src?`url("${src}")`:''};
+ skin('#box',u('textBox'));skin('#name',u('nameBox'));
+ stage.classList.toggle('skinChoice',!!u('choiceButton'));choiceImg=u('choiceButton');
+ titleImg=u('titleImage');titleLogo=u('titleLogo');endImg=u('endImage');
+ if(fontFace){document.fonts.delete(fontFace);fontFace=null}
+ stage.style.removeProperty('--serif');stage.style.removeProperty('--sans');
+ if(u('font'))try{const ff=new FontFace('vnStoryFont',`url(${u('font')})`);ff.load().then(f=>{document.fonts.add(f);fontFace=f;
+  stage.style.setProperty('--serif','"vnStoryFont","Gowun Batang",serif');stage.style.setProperty('--sans','"vnStoryFont","Gowun Dodum",sans-serif')})
+  .catch(()=>toast('폰트 파일을 읽지 못해 기본 글꼴을 써요.',3500))}catch(e){}}
+
+/* ── 화면 전환 ── */
+let playing=false;
+const screenOn=()=>['#title','#loader','#end'].some(s=>$(s).classList.contains('on'));
+const ovOpen=()=>ov.classList.contains('on');
+function hideAll(){['#title','#loader','#end'].forEach(s=>$(s).classList.remove('on'));ov.classList.remove('on');ov.innerHTML=''}
+function toast(m,ms){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),ms||2200)}
+const latest=()=>[saves.quick,...saves.slots].filter(Boolean).sort((a,b)=>b.t-a.t)[0];
+function showTitle(){playing=false;stopModes();resetStage();hideAll();$('#title').classList.add('on');
+ playBgm('');const st=scenes[story.start]||story.nodes[0],bg=titleImg||bgs[st.background]||Object.values(bgs)[0];
+ $('#tbg').style.backgroundImage=bg?`url("${bg}")`:'none';$('#timg').style.backgroundImage=titleImg?`url("${titleImg}")`:'none';
+ const ft=story.fileTitle&&story.fileTitle.toLowerCase()!='story'?story.fileTitle:'이야기',tt=titleLogo?'':((story.title||'').trim()||ft);
+ const lg=$('#tlogo');lg.classList.toggle('on',!!titleLogo);if(titleLogo)lg.src=titleLogo;else lg.removeAttribute('src');lg.alt=(story.title||'').trim();
+ $('#tname').textContent=tt;$('#tline').style.display=tt?'':'none';
+ $('#tCont').hidden=!latest();kbFocus($('#tNew'))}
+function showLoader(msg){playing=false;stopModes();hideAll();$('#loader').classList.add('on');$('#err').textContent=msg||''}
+function showEnd(message){playing=false;stopModes();$('#choices').innerHTML='';
+ const endText=(typeof message==='string'?message:'').trim()||'끝',endUrl=endImg?`url("${endImg}")`:'none';
+ $('#etext').textContent=endText;$('#etext').classList.toggle('long',endText.length>4);
+ $('#etext').classList.toggle('para',endText.length>24||endText.includes('\n'));
+ $('#ebg').style.backgroundImage=endUrl;$('#eimg').style.backgroundImage=endUrl;
+ $('#end').classList.add('on');kbFocus($('#endBtn'))}
+
+/* ── 무대: 배경과 캐릭터 ── */
+let bgFront=0,bgCur=undefined;const cmap=new Map();
+function setBg(name){const src=bgs[name]||null;if(src===bgCur)return;bgCur=src;const L=document.querySelectorAll('.bg');bgFront^=1;
+ const a=L[bgFront],b=L[bgFront^1];const u=src?`url("${src}")`:'none';a.firstChild.style.backgroundImage=u;a.lastChild.style.backgroundImage=u;a.style.zIndex=2;b.style.zIndex=1;a.classList.add('on');b.classList.remove('on')}
+function placeChars(list,speaker){const n=list.length,seen=new Set(),sp=(speaker||'').trim(),focus=list.some(a=>a.character===sp);
+ list.forEach((a,i)=>{const src=poses[a.character]&&poses[a.character][a.pose];if(!src)return;seen.add(a.character);
+  const left=((i+1)/(n+1)*100)+'%';let w=cmap.get(a.character);
+  if(!w){w=el('div','ch');w.append(el('img'));w.style.left=left;w.style.opacity=0;$('#chars').append(w);cmap.set(a.character,w);void w.offsetWidth}
+  const im=w.firstChild;if(im.getAttribute('src')!==src)im.src=src;im.alt=a.character;
+  w.style.left=left;w.style.zIndex=i+1;w.style.opacity=1;
+  w.style.setProperty('--s',a.emphasis=='near'?1.16:a.emphasis=='far'?.8:1);
+  w.classList.toggle('dim',focus&&a.character!==sp);
+  im.classList.remove('jump','shake');if(a.emphasis=='jump'||a.emphasis=='shake'){void im.offsetWidth;im.classList.add(a.emphasis)}});
+ cmap.forEach((w,name)=>{if(!seen.has(name)){cmap.delete(name);w.style.opacity=0;setTimeout(()=>w.remove(),450)}})}
+function resetStage(){cmap.forEach(w=>w.remove());cmap.clear();$('#choices').innerHTML='';$('#text').textContent='';$('#name').textContent='';$('#next').classList.remove('on');stage.classList.remove('hide')}
+
+/* ── 진행 ── */
+let cur=null,log=[],typing=false,full='',shown=0,raf=0,auto=false,skip=false,timer=0;
+function go(id){const s=scenes[id];if(!s)return showEnd();show(s)}
+function show(s){cur=s;
+ if(s.type==='ending'){read.add(s.id);LS.set('vnp:read:'+key,[...read]);return showEnd(s.endMessage)}
+ if(skip&&!set.skipUnread&&!read.has(s.id)){stopModes('skip');toast('읽지 않은 대사라서 넘기기를 멈췄어요.')}
+ read.add(s.id);LS.set('vnp:read:'+key,[...read]);
+ setBg(s.background);
+ if(s.bgmAction=='stop')playBgm('');else if(s.bgmAction=='play')playBgm(s.bgm);
+ playSe(s.se);
+ placeChars(s.characters||[],s.speaker);
+ const sp=(s.speaker||'').trim();$('#name').textContent=sp;fitName();
+ log.push({s:sp,t:s.text||''});if(log.length>300)log.shift();
+ $('#choices').innerHTML='';type(s.text||'')}
+function type(t){full=t;shown=0;typing=true;$('#next').classList.remove('on');cancelAnimationFrame(raf);clearTimeout(timer);
+ const tx=$('#text');tx.textContent='';let last=0;
+ const step=now=>{if(!last)last=now;const cps=skip||set.speed>=120?1e9:set.speed;shown=Math.min(full.length,shown+(now-last)/1000*cps);last=now;
+  tx.textContent=full.slice(0,Math.floor(shown));if(shown>=full.length)done();else raf=requestAnimationFrame(step)};
+ raf=requestAnimationFrame(step)}
+function finishType(){cancelAnimationFrame(raf);$('#text').textContent=full;done()}
+function done(){typing=false;const ch=cur.choices||[];
+ if(ch.length){showChoices();if(skip){stopModes('skip')}return}
+ $('#next').classList.add('on');schedule()}
+function schedule(){clearTimeout(timer);if(!playing||typing||ovOpen()||stage.classList.contains('hide')||(cur.choices||[]).length)return;
+ if(skip)timer=setTimeout(adv,70);else if(auto)timer=setTimeout(adv,set.auto*1000+full.length*25)}
+function showChoices(){const box=$('#choices');box.innerHTML='';
+ cur.choices.forEach(c=>{const b=el('button',null,c.text||'…');if(choiceImg)b.style.backgroundImage=`url("${choiceImg}")`;b.onclick=e=>{e.stopPropagation();log.push({pick:c.text||''});box.innerHTML='';go(c.next)};box.append(b)});
+ kbFocus(box.firstChild,{preventScroll:true})}
+function adv(){if(!playing||ovOpen()||screenOn())return;
+ if(stage.classList.contains('hide')){toggleHide();return}
+ clearTimeout(timer);if(typing){finishType();return}
+ if((cur.choices||[]).length)return;go(cur.next)}
+function startGame(){hideAll();resetStage();stopModes();playBgm('');log=[];playing=true;go(story.start||story.nodes[0].id)}
+
+/* ── 자동 / 넘기기 / 숨기기 ── */
+function modeUI(){$('#mode').textContent=skip?'빨리 넘기는 중':auto?'자동 진행 중':'';$('#bAuto').classList.toggle('act',auto);$('#bSkip').classList.toggle('act',skip)}
+function stopModes(which){if(!which||which=='skip')skip=false;if(!which||which=='auto')auto=false;clearTimeout(timer);modeUI()}
+function toggleAuto(){if(!playing)return;auto=!auto;if(auto)skip=false;modeUI();schedule()}
+function toggleSkip(){if(!playing)return;skip=!skip;if(skip)auto=false;modeUI();if(skip){if(typing)finishType();else schedule()}else clearTimeout(timer)}
+function toggleHide(){if(!playing)return;stage.classList.toggle('hide');if(stage.classList.contains('hide'))clearTimeout(timer);else schedule()}
+
+/* ── 창 ── */
+function openOv(title,body,small){clearTimeout(timer);ov.innerHTML='';const p=el('div','panel'+(small?' small':'')),hd=el('header'),x=el('button','x','×');
+ x.setAttribute('aria-label','닫기');x.onclick=closeOv;hd.append(el('h2',null,title),x);p.append(hd,body);ov.append(p);ov.classList.add('on');kbFocus(x)}
+function closeOv(){ov.classList.remove('on');ov.innerHTML='';schedule()}
+ov.onclick=e=>{if(e.target===ov)closeOv()};
+function ask(msg,ok,fn){const b=el('div','ask'),row=el('div','row'),n=el('button','btn','취소'),y=el('button','btn main',ok);
+ b.append(el('p',null,msg));n.onclick=closeOv;y.onclick=()=>{closeOv();fn()};row.append(n,y);b.append(row);openOv('확인',b,true);kbFocus(y)}
+function openLog(){const body=el('div','body');if(!log.length)body.append(el('p','empty','아직 지나온 대사가 없어요.'));
+ log.forEach(l=>{const d=el('div','log'+(l.pick!=null?' pick':''));if(l.pick!=null)d.append(el('p',null,'고른 선택지: '+l.pick));else{if(l.s)d.append(el('b',null,l.s));d.append(el('p',null,l.t))}body.append(d)});
+ openOv('지난 대사',body);body.scrollTop=body.scrollHeight}
+
+/* ── 저장 / 불러오기 ── */
+const SLOTS=12;
+const snap=()=>({id:cur.id,log:log.slice(-120),t:Date.now(),name:cur.name||'',text:(cur.text||'').slice(0,60),bg:cur.background||'',bgm:bgmName});
+const persist=()=>{if(!LS.set('vnp:save:'+key,saves)){toast('브라우저 저장 공간이 부족해 저장하지 못했어요.',3500);return false}return true};
+const fmt=t=>new Date(t).toLocaleString('ko-KR',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+function restoreSave(s){if(!s||!scenes[s.id])return toast('이 기록의 장면을 이야기에서 찾을 수 없어요.',3500);
+ hideAll();resetStage();stopModes();playing=true;playBgm(s.bgm||'');log=(s.log||[]).slice();const last=log[log.length-1];
+ if(last&&last.t===(scenes[s.id].text||''))log.pop();show(scenes[s.id])}
+function openSlots(mode){const body=el('div','body'),g=el('div','slots');
+ for(let i=0;i<SLOTS;i++){const s=saves.slots[i],b=el('button','slot'+(s?'':' empty'));
+  if(s){if(bgs[s.bg])b.style.backgroundImage=`url("${bgs[s.bg]}")`;const cap=el('div','cap'),top=el('div');top.append(el('b',null,(i+1)+'번'),fmt(s.t));cap.append(top,el('span',null,s.text||s.name||'(대사 없음)'));b.append(cap)}
+  else{b.textContent='빈 슬롯 '+(i+1);if(mode=='load')b.disabled=true}
+  b.onclick=()=>{if(mode=='save'){const doSave=()=>{saves.slots[i]=snap();if(persist()){closeOv();toast((i+1)+'번 슬롯에 저장했어요.')}};s?ask((i+1)+'번 슬롯의 기록을 지우고 새로 저장할까요?','덮어쓰기',doSave):doSave()}
+   else if(s){playing?ask('이 기록을 불러올까요? 지금 진행 중인 내용은 저장되지 않아요.','불러오기',()=>restoreSave(s)):restoreSave(s)}};
+  g.append(b)}
+ body.append(g);openOv(mode=='save'?'저장하기':'불러오기',body)}
+function quickSave(){if(!playing)return;saves.quick=snap();if(persist())toast('빠른 저장을 했어요.')}
+function quickLoad(){if(!saves.quick)return toast('빠른 저장 기록이 없어요.');ask('빠른 저장 기록을 불러올까요? 지금 진행 중인 내용은 저장되지 않아요.','불러오기',()=>restoreSave(saves.quick))}
+
+/* ── 환경설정 ── */
+function openSettings(){const body=el('div','body'),g=el('div','set');
+ const range=(label,k,min,max,stp,show,after)=>{const inp=el('input'),out=el('output');inp.type='range';inp.min=min;inp.max=max;inp.step=stp;inp.value=set[k];inp.setAttribute('aria-label',label);
+  out.textContent=show(set[k]);inp.oninput=()=>{set[k]=+inp.value;out.textContent=show(set[k]);saveSet();after&&after()};g.append(el('label',null,label),inp,out)};
+ range('글자가 나오는 속도','speed',10,120,5,v=>v>=120?'바로':v+'자/초');
+ range('자동 진행 대기 시간','auto',.5,6,.5,v=>v+'초');
+ range('대사창 불투명도','box',20,100,5,v=>v+'%',applySet);
+ range('배경음 크기','bgmVol',0,100,5,v=>v+'%',()=>{if(bgmEl)bgmEl.volume=set.bgmVol/100});
+ range('효과음 크기','seVol',0,100,5,v=>v+'%');
+ const cb=el('input');cb.type='checkbox';cb.checked=set.skipUnread;cb.setAttribute('aria-label','읽지 않은 대사도 넘기기');cb.onchange=()=>{set.skipUnread=cb.checked;saveSet()};
+ g.append(el('label',null,'읽지 않은 대사도 넘기기'),cb,el('span'));
+ const fs=el('button','btn',document.fullscreenElement?'전체 화면 끄기':'전체 화면으로 보기');
+ fs.onclick=()=>{const p=document.fullscreenElement?document.exitFullscreen():(document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen());
+  if(p&&p.catch)p.catch(()=>toast('이 화면에서는 전체 화면을 쓸 수 없어요.'));closeOv()};
+ g.append(el('label',null,'화면'),fs,el('span'));
+ body.append(g,el('p','keys','클릭, Space, Enter: 다음 대사\nCtrl 누르고 있기: 빨리 넘기기\nA: 자동 진행 켜고 끄기\nH 또는 오른쪽 클릭: 대사창 숨기기\nL 또는 휠 위로: 지난 대사 보기\nEsc: 열린 창 닫기'));
+ openOv('환경설정',body)}
+
+/* ── 버튼 연결 ── */
+const on=(id,f)=>$(id).addEventListener('click',e=>{e.stopPropagation();f()});
+on('#bLog',openLog);on('#bAuto',toggleAuto);on('#bSkip',toggleSkip);on('#bSave',()=>openSlots('save'));on('#bLoad',()=>openSlots('load'));
+on('#bQS',quickSave);on('#bQL',quickLoad);on('#bSet',openSettings);on('#bHide',toggleHide);
+on('#bTitle',()=>ask('타이틀로 돌아갈까요? 저장하지 않은 진행은 사라져요.','타이틀로',showTitle));
+on('#tNew',startGame);on('#tCont',()=>restoreSave(latest()));on('#tLoad',()=>openSlots('load'));on('#tSet',openSettings);on('#tOpen',()=>showLoader());on('#endBtn',showTitle);
+
+/* ── 입력 ── */
+$('#game').addEventListener('click',e=>{if(e.target.closest('button'))return;adv()});
+stage.addEventListener('contextmenu',e=>{e.preventDefault();if(ovOpen())closeOv();else if(playing&&!screenOn())toggleHide()});
+let wheelAt=0;
+stage.addEventListener('wheel',e=>{if(ovOpen()||!playing||screenOn())return;const now=Date.now();if(now-wheelAt<300)return;wheelAt=now;if(e.deltaY<0)openLog();else adv()},{passive:true});
+let ctrlSkip=false;
+addEventListener('keydown',e=>{if(e.key=='Escape'){if(ovOpen())closeOv();return}
+ if(ovOpen()||!playing||screenOn())return;
+ if(e.key==' '||e.key=='Enter'){if(document.activeElement&&document.activeElement.tagName=='BUTTON')return;e.preventDefault();if(!e.repeat)adv()}
+ else if(e.key=='Control'&&!e.repeat){if(!skip){toggleSkip();ctrlSkip=true}}
+ else if(e.code=='KeyA')toggleAuto();else if(e.code=='KeyH')toggleHide();else if(e.code=='KeyL')openLog()});
+addEventListener('keyup',e=>{if(e.key=='Control'&&ctrlSkip){ctrlSkip=false;if(skip)toggleSkip()}});
+
+/* ── 파일 열기 ── */
+const drop=$('#drop');
+drop.onclick=()=>$('#file').click();drop.onkeydown=e=>{if(e.key=='Enter'||e.key==' '){e.preventDefault();$('#file').click()}};
+$('#file').onchange=e=>{openFile(e.target.files[0]);e.target.value=''};
+addEventListener('dragover',e=>{e.preventDefault();if($('#loader').classList.contains('on'))drop.classList.add('over')});
+addEventListener('dragleave',e=>{if(e.target===drop)drop.classList.remove('over')});
+addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if($('#loader').classList.contains('on')&&e.dataTransfer.files[0])openFile(e.dataTransfer.files[0])});
+async function openFile(f){if(!f)return;$('#err').textContent='여는 중이에요…';let obj;
+ try{obj=JSON.parse(await f.text())}catch(e){return showLoader('JSON 파일이 아니에요. 장면 에디터의 "게임용 내보내기"로 만든 파일을 넣어 주세요.')}
+ begin(obj,f.name.replace(/\.json$/i,'').replace(/\s*\(\d+\)$/,''),true)}
+function begin(obj,title,store){let imgs;
+ try{imgs=loadStory(obj,title)}catch(e){return showLoader('장면 정보가 없는 파일이에요. 장면 에디터의 "게임용 내보내기"로 만든 파일을 넣어 주세요.')}
+ applySkin(obj.ui);
+ if(store)idb('readwrite',s=>s.put({obj,title},'story'));
+ showTitle();if(!imgs)toast('그림이 들어 있지 않은 파일이에요. 내보낼 때 "이미지 포함"을 켜 주세요.',4500)}
+
+applySet();modeUI();
+const embeddedStory=document.getElementById('vn-embedded-story');
+if(embeddedStory){
+ // 배포용 파일: 이야기가 파일 안에 들어 있으므로 바로 시작하고, 다른 이야기 열기는 숨김
+ $('#tOpen').hidden=true;let obj=null;
+ try{obj=JSON.parse(embeddedStory.textContent)}catch(e){}
+ if(obj)begin(obj,'',false);else showLoader('이 파일에 들어 있는 이야기를 읽지 못했어요.');
+}else if(location.hash=='#preview'&&window.opener){
+ // 장면 에디터의 "바로 플레이": 에디터 창에서 이야기를 받아 시작 (플레이어에 저장된 이야기는 건드리지 않음)
+ showLoader();$('#err').textContent='장면 에디터에서 이야기를 받는 중이에요…';let received=false;
+ addEventListener('message',e=>{if(received||e.source!==window.opener||!e.data||e.data.type!=='vn-story')return;received=true;begin(e.data.story,e.data.title||'',false)});
+ try{window.opener.postMessage({type:'vn-player-ready'},'*')}catch(e){}
+ setTimeout(()=>{if(!received)$('#err').textContent='에디터에서 이야기를 받지 못했어요. 에디터에서 "바로 플레이"를 다시 눌러 주세요.'},5000);
+}else{
+ idb('readonly',s=>s.get('story')).then(v=>{if(v&&v.obj)begin(v.obj,v.title,false);else showLoader()});
+}
+</script></body></html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>미연시 장면 에디터</title>
+<style>
+:root{--bg:#e9eef2;--card:#fff;--ink:#1d2b36;--mute:#71808c;--line:#cfd8df;--acc:#1f7a8c;--ok:#3a9a5b;--hd:#dcebef}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font:14px/1.4 "Pretendard","Malgun Gothic",system-ui,sans-serif;color:var(--ink)}
+#bar{position:fixed;inset:0 0 auto 0;height:50px;display:flex;gap:8px;align-items:center;padding:0 14px;background:var(--card);border-bottom:1px solid var(--line);z-index:5}
+#bar b{font-size:15px;margin-right:6px}#bar small{color:var(--mute);margin-left:auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#bar button,#bar label{flex:none;white-space:nowrap}
+button{font:inherit;border:1px solid var(--line);background:var(--card);border-radius:6px;padding:5px 11px;cursor:pointer;color:var(--ink)}
+button:hover{border-color:var(--acc)}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button.main{background:var(--acc);border-color:var(--acc);color:#fff}
+#view{position:absolute;inset:50px 0 0 230px;overflow:hidden;cursor:grab;background:var(--bg) radial-gradient(#c3cdd5 1px,transparent 1px) 0 0/24px 24px}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#svg{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+#svg path{fill:none;stroke:var(--acc);stroke-width:2.5}
+.n{position:absolute;width:264px;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 1px 6px #0d1f2d1a;cursor:default}
+.n.start{border-color:var(--ok);box-shadow:0 0 0 2px var(--ok)}
+.b .cont{background:var(--hd);border-color:var(--acc);color:var(--acc);font-weight:600}
+.n.end{border-color:#2b2a33}.n.end .h{background:#2b2a33;color:#fff}.n.end .nm:not([readonly]){color:var(--ink)}
+.h{position:relative;display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--hd);border-radius:7px 7px 0 0;cursor:move;font-weight:600}
+.n.start .h{background:#d9efe0}.tt{flex:1}.h button{padding:1px 7px;font-size:12px}
+.b{padding:8px 10px 10px;display:flex;flex-direction:column;gap:5px}
+.b>label{font-size:12px;color:var(--mute);margin-top:3px}
+.dz{border:1.5px dashed var(--line);border-radius:6px;padding:6px;text-align:center;color:var(--mute);font-size:12px;cursor:pointer;min-height:38px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.dz.over{border-color:var(--acc);background:#1f7a8c14}.dz img{height:52px;border-radius:4px;display:block}
+.th{position:relative;display:inline-block}.th i{position:absolute;right:-5px;top:-5px;background:#c0392b;color:#fff;border-radius:50%;width:16px;height:16px;font-size:12px;line-height:16px;font-style:normal;cursor:pointer}
+input[type=text],textarea{width:100%;font:inherit;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+textarea{resize:vertical;min-height:56px}
+.c{position:relative;display:flex;gap:4px;align-items:center}.c.nx{justify-content:flex-end;color:var(--mute);font-size:12px;padding:2px 0}
+.pt{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--acc)}
+.ip{left:-8px;top:10px}.c .pt{right:-18px;top:50%;margin-top:-7px;cursor:crosshair}.c .pt:hover{background:var(--acc)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1d2b36;color:#fff;padding:9px 14px;border-radius:8px;display:flex;gap:12px;align-items:center;z-index:9}.toast button{padding:2px 9px}
+.pn{position:fixed;inset:0;background:#0d1f2d8c;display:flex;align-items:center;justify-content:center;z-index:8}
+.pb{width:min(640px,92vw);background:#fff;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.pb textarea{height:46vh;font:12px/1.4 ui-monospace,Consolas,monospace}.row{display:flex;gap:8px;justify-content:flex-end}
+#side{position:fixed;left:0;top:50px;bottom:0;width:230px;background:var(--card);border-right:1px solid var(--line);z-index:4;display:flex;flex-direction:column;gap:8px;padding:10px;overflow:auto}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px}.tabs button{padding:5px 2px;font-size:12px}
+.ul{font-size:12px;color:var(--mute);margin-top:2px}.fp{font:400 20px/1.2 vnUserFont,sans-serif;color:var(--ink)}
+.li.au{cursor:default}.li.au button:first-child{width:28px}
+.b>select{width:100%;flex:none}.tabs .on{background:var(--hd);border-color:var(--acc);font-weight:600}
+.lib{display:flex;flex-direction:column;gap:6px}.lib small{color:var(--mute)}
+.li{display:flex;align-items:center;gap:8px;padding:4px;border:1px solid var(--line);border-radius:6px;cursor:grab}
+.li img{height:40px;width:40px;object-fit:contain;background:#eef2f5;border-radius:4px}
+.li span{flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.li button{padding:0 6px}
+.nm{flex:1;min-width:0;font:inherit;font-weight:600;border:1px solid transparent;background:transparent;color:inherit;border-radius:4px;padding:1px 4px;cursor:move}
+.nm:not([readonly]){background:#fff;border-color:var(--acc);cursor:text}
+.hit{stroke:transparent!important;stroke-width:16!important;pointer-events:stroke;cursor:pointer}
+.ed{position:absolute;z-index:3;background:#c0392b;color:#fff;border-color:#c0392b}
+.pan,.pan *{user-select:none;-webkit-user-select:none}
+.pk{display:flex;flex-wrap:wrap;gap:8px;max-height:46vh;overflow:auto}
+.pk div{cursor:pointer;font-size:11px;width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk img{width:84px;height:64px;object-fit:contain;background:#eef2f5;border-radius:4px;display:block}
+.cc{border:1px solid var(--line);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:6px}
+.ch{display:flex;align-items:center;gap:4px;cursor:grab}.ch button{padding:0 6px}.chn[readonly]{pointer-events:none}
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 6px}.pg small{grid-column:1/-1;color:var(--mute)}
+.po{position:relative;cursor:grab;display:flex;flex-direction:column;gap:2px;min-width:0}
+.po img{width:100%;height:56px;object-fit:contain;background:#eef2f5;border-radius:4px}
+.po span{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;color:var(--mute)}
+.po i{position:absolute;right:-4px;top:-4px;background:#c0392b;color:#fff;border-radius:50%;width:16px;height:16px;font-size:12px;line-height:16px;text-align:center;font-style:normal;cursor:pointer}
+.cr{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:4px}.cr button{padding:0 6px}
+.ce{flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0}
+.ce img{height:44px;width:44px;object-fit:contain;background:#eef2f5;border-radius:4px}
+.ce span{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button:disabled{opacity:.35;cursor:default}button:disabled:hover{border-color:var(--line)}
+.cr.v{flex-direction:column;align-items:stretch}.crt{display:flex;gap:6px;align-items:center}
+.em{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+select{font:inherit;flex:1;min-width:0;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+</style></head><body>
+<div id="bar"><b>미연시 장면 에디터</b>
+<button class="main" id="add">+ 장면 추가</button><button id="addEnd">+ 엔딩 추가</button><button id="sv">프로젝트 저장</button><button id="ld">불러오기</button>
+<button class="main" id="pl">▶ 바로 플레이</button><button id="dist">배포용 파일 만들기</button><button id="ex">게임용 내보내기</button><label><input type="checkbox" id="inc"> 파일 포함 (이미지, 오디오, 폰트)</label>
+<small>빈 곳 더블클릭: 장면 추가 · 장면 이름 더블클릭: 이름 변경 · 연결선 클릭: 삭제 · 휠: 확대/축소</small>
+<input type="file" id="file" accept=".json" hidden></div>
+<div id="side"></div>
+<div id="view"><div id="world"><svg id="svg"></svg></div></div>
+<script>
+const $=s=>document.querySelector(s),view=$('#view'),world=$('#world'),svg=$('#svg');
+let S,pan={x:40,y:40},z=1,D=null;
+const h=(t,a={},...k)=>{const e=document.createElement(t);for(const x in a)x=='c'?e.className=a[x]:x.startsWith('on')?e[x]=a[x]:e.setAttribute(x,a[x]);e.append(...k);return e};
+const getL=(n,k)=>k=='n'?n.next:n.choices[k].next, setL=(n,k,v)=>{if(k=='n')n.next=v;else n.choices[k].next=v};
+let st,tab='c';
+const save=()=>{clearTimeout(st);st=setTimeout(()=>{try{localStorage.setItem('vnEditor',JSON.stringify({...S,images:null,audio:null,uiAssets:null}))}catch(e){}},400)};
+const idb=(mode,fn)=>new Promise(res=>{try{const r=indexedDB.open('vn-editor',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+ r.onsuccess=()=>{try{const tx=r.result.transaction('kv',mode),q=fn(tx.objectStore('kv'));tx.oncomplete=()=>res(q.result);tx.onerror=tx.onabort=()=>res(null)}catch(e){res(null)}};r.onerror=()=>res(null)}catch(e){res(null)}});
+const saveImgs=()=>idb('readwrite',s=>s.put({images:S.images,audio:S.audio,uiAssets:S.uiAssets},'assets')).then(r=>{if(r==null)toast('이미지와 오디오를 브라우저에 자동 저장하지 못했어요. "프로젝트 저장"을 사용해 주세요.')});
+const uname=b=>{let s=b;while(S.nodes.some(m=>m.name==s))s+='*';return s};
+const ucast=b=>{let s=b;while(Object.values(S.cast).some(c=>c.name==s))s+='*';return s};
+function norm(){S.images=S.images||{};S.cast=S.cast||{};S.cseq=S.cseq||1;S.audio=S.audio||{};S.uiAssets=S.uiAssets||{};S.title=S.title||'';S.aseq=S.aseq||1;
+ S.nodes.forEach(n=>{n.name=n.name||'장면 '+n.id.slice(1);n.bgm=n.bgm=='__stop__'||S.audio[n.bgm]?n.bgm:'';n.se=S.audio[n.se]?n.se:''});
+ Object.entries(S.images).forEach(([id,i])=>{if(!i.kind)i.kind=S.nodes.some(n=>n.bg==id)?'b':'c';
+  if(i.kind=='c'&&!(i.char&&S.cast[i.char])){const cid='c'+S.cseq++;i.char=cid;S.cast[cid]={id:cid,name:ucast(i.name.replace(/\.[^.]+$/,''))}}});
+ S.nodes.forEach(n=>{n.chars=(n.chars||[]).map(x=>typeof x=='string'?{c:S.images[x]?.char,p:x}:x).filter(x=>x.c&&S.cast[x.c]&&S.images[x.p]).map(x=>({...x,e:x.e||'none'}))})}
+function restore(s){const o=JSON.parse(s);o.images=o.images||S.images;o.audio=o.audio||S.audio;o.uiAssets=o.uiAssets||S.uiAssets;S=o;saveImgs();save();render();side()}
+const mkThumb=src=>new Promise(res=>{const im=new Image();im.onload=()=>{const k=Math.min(1,120/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/png'))};im.onerror=()=>res(src);im.src=src});
+function addImgs(files,kind,cid){const fs=[...files].filter(f=>f.type.startsWith('image/'));if(!fs.length)return toast('이미지 파일만 추가할 수 있어요.');let dup=0;
+ Promise.all(fs.map(f=>{if(Object.values(S.images).some(i=>i.kind==kind&&i.char==cid&&i.name==f.name)){dup++;return null}
+  return new Promise(res=>{const r=new FileReader();r.onload=()=>mkThumb(r.result).then(th=>{const id='i'+S.iseq++;S.images[id]={kind,char:cid,name:f.name,data:r.result,thumb:th};res(id)});r.readAsDataURL(f)})}))
+ .then(()=>{saveImgs();save();side();if(dup)toast(dup+'장은 같은 이름이 이미 있어 건너뛰었어요.')})}
+let op={};
+const poses=cid=>Object.entries(S.images).filter(([,i])=>i.kind=='c'&&i.char==cid);
+const upl=(label,cb,acc='image/*')=>{const up=h('div',{c:'dz'},label);up.ondragover=e=>{e.preventDefault();up.classList.add('over')};up.ondragleave=()=>up.classList.remove('over');
+ up.ondrop=e=>{e.preventDefault();up.classList.remove('over');cb(e.dataTransfer.files)};
+ up.onclick=()=>{const f=h('input',{type:'file',accept:acc});f.multiple=true;f.onchange=()=>cb(f.files);f.click()};return up};
+function delPose(id){const s=JSON.stringify(S),cid=S.images[id].char;delete S.images[id];const rest=poses(cid);
+ S.nodes.forEach(n=>{n.chars=n.chars.filter(x=>{if(x.p!=id)return true;if(!rest.length)return false;x.p=rest[0][0];return true})});
+ saveImgs();save();render();side();toast('포즈를 삭제했어요.',()=>restore(s))}
+function delChar(c){const s=JSON.stringify(S);poses(c.id).forEach(([id])=>delete S.images[id]);delete S.cast[c.id];
+ S.nodes.forEach(n=>{n.chars=n.chars.filter(x=>x.c!=c.id)});saveImgs();save();render();side();toast('캐릭터를 삭제했어요. 쓰던 장면에서도 빠집니다.',()=>restore(s))}
+function side(){const el=$('#side');el.innerHTML='';
+ const nc=Object.keys(S.cast).length,nb=Object.values(S.images).filter(i=>i.kind=='b').length,tabs=h('div',{c:'tabs'});
+ [['c',`캐릭터 (${nc})`],['b',`배경 (${nb})`],['a',`오디오 (${Object.keys(S.audio).length})`],['u','UI']].forEach(([k,l])=>{const b=h('button',{c:k==tab?'on':''},l);b.onclick=()=>{tab=k;side()};tabs.append(b)});
+ el.append(tabs);({b:sideBg,a:sideAudio,u:sideUi}[tab]||sideCast)(el)}
+let prevA=null,prevId=null;
+function addAudio(files){const fs=[...files].filter(f=>f.type.startsWith('audio/')||/\.(mp3|ogg|wav|m4a|aac|flac|opus)$/i.test(f.name));if(!fs.length)return toast('오디오 파일만 추가할 수 있어요.');let dup=0;
+ Promise.all(fs.map(f=>{if(Object.values(S.audio).some(a=>a.name==f.name)){dup++;return null}
+  return new Promise(res=>{const r=new FileReader();r.onload=()=>{const id='a'+S.aseq++;S.audio[id]={name:f.name,data:r.result};res(id)};r.readAsDataURL(f)})}))
+ .then(()=>{saveImgs();save();side();render();if(dup)toast(dup+'개는 같은 이름이 이미 있어 건너뛰었어요.')})}
+function preview(id){if(prevA){prevA.pause();prevA=null}if(prevId==id){prevId=null;side();return}
+ prevId=id;prevA=new Audio(S.audio[id].data);prevA.onended=()=>{prevId=null;prevA=null;if(tab=='a')side()};
+ prevA.play().catch(()=>{prevId=null;prevA=null;toast('이 브라우저에서는 이 오디오를 재생할 수 없어요.');side()});side()}
+function sideAudio(el){const list=h('div',{c:'lib'});
+ Object.entries(S.audio).forEach(([id,a])=>{const pl=h('button',{title:prevId==id?'멈추기':'미리 듣기'},prevId==id?'■':'▶'),x=h('button',{title:'삭제'},'×');
+  pl.onclick=()=>preview(id);
+  x.onclick=()=>{if(prevId==id)preview(id);const s=JSON.stringify(S);delete S.audio[id];S.nodes.forEach(n=>{if(n.bgm==id)n.bgm='';if(n.se==id)n.se=''});saveImgs();save();render();side();toast('오디오를 삭제했어요. 쓰던 장면에서도 빠집니다.',()=>restore(s))};
+  list.append(h('div',{c:'li au',title:a.name},pl,h('span',{},a.name),x))});
+ if(!list.children.length)list.append(h('small',{},'아직 오디오가 없어요. 배경음과 효과음 파일을 여기에 추가하세요.'));
+ el.append(upl('+ 오디오 추가 (끌어다 놓기 · 클릭)',addAudio,'audio/*'),list)}
+const UIS=[['titleImage','타이틀 배경','1920×1080 권장'],['titleLogo','타이틀 로고','투명 배경 PNG 권장'],['textBox','대사창','5:1 비율, 1600×320 권장'],['nameBox','이름표','5:1 비율, 360×72 권장'],['choiceButton','선택지 버튼','1040×100 권장'],['endImage','엔딩 배경','1920×1080 권장'],['font','폰트','ttf, otf, woff']];
+function setUi(k,f){if(!f)return;const isFont=k=='font';
+ if(!isFont&&!f.type.startsWith('image/'))return toast('이미지 파일만 넣을 수 있어요.');
+ if(isFont&&!/\.(ttf|otf|woff2?)$/i.test(f.name))return toast('ttf, otf, woff, woff2 폰트 파일만 넣을 수 있어요.');
+ const r=new FileReader();r.onload=()=>{const done=th=>{S.uiAssets[k]={name:f.name,data:r.result,thumb:th};saveImgs();save();side()};isFont?done(null):mkThumb(r.result).then(done)};r.readAsDataURL(f)}
+let fontKey='';
+function loadFontPreview(){const f=S.uiAssets.font;if(!f||fontKey==f.name+f.data.length)return;fontKey=f.name+f.data.length;
+ try{new FontFace('vnUserFont',`url(${f.data})`).load().then(x=>document.fonts.add(x)).catch(()=>toast('폰트 파일을 읽지 못했어요.'))}catch(e){}}
+function sideUi(el){const ti=h('input',{type:'text',placeholder:'타이틀 화면에 보일 제목',value:S.title||''});ti.oninput=()=>{S.title=ti.value;save()};
+ el.append(h('small',{c:'ul'},'비워 둔 항목은 플레이어의 기본 모양을 써요.'),h('label',{c:'ul'},'작품 제목'),ti);
+ UIS.forEach(([k,label,hint])=>{const a=S.uiAssets[k],isFont=k=='font';
+  const d=upl(a?a.name:'끌어다 놓기 · 클릭 ('+hint+')',f=>setUi(k,f[0]),isFont?'.ttf,.otf,.woff,.woff2':'image/*');
+  if(a){const x=h('i',{},'×');x.onclick=e=>{e.stopPropagation();const s=JSON.stringify(S);S.uiAssets[k]=null;saveImgs();save();side();toast(label+' 설정을 지웠어요.',()=>restore(s))};
+   d.prepend(h('span',{c:'th'},isFont?h('b',{c:'fp'},'가나다 Aa'):h('img',{src:a.thumb||a.data}),x))}
+  el.append(h('label',{c:'ul'},label),d)});
+ loadFontPreview()}
+function aSel(n,k,opts){const s=h('select',{},...opts.map(([v,l])=>h('option',{value:v},l)),...Object.entries(S.audio).map(([id,a])=>h('option',{value:id},a.name)));
+ s.value=n[k]||'';s.onchange=()=>{n[k]=s.value;save()};return s}
+function sideBg(el){const list=h('div',{c:'lib'});
+ Object.entries(S.images).filter(([,i])=>i.kind=='b').forEach(([id,i])=>{const x=h('button',{title:'삭제'},'×'),it=h('div',{c:'li',draggable:'true',title:i.name},h('img',{src:i.thumb||i.data}),h('span',{},i.name),x);
+  it.ondragstart=e=>e.dataTransfer.setData('text/plain','vn:b:'+id);
+  x.onclick=()=>{const s=JSON.stringify(S);delete S.images[id];S.nodes.forEach(n=>{if(n.bg==id)n.bg=null});saveImgs();save();render();side();toast('이미지를 삭제했어요. 쓰던 장면에서도 빠집니다.',()=>restore(s))};list.append(it)});
+ if(!list.children.length)list.append(h('small',{},'아직 이미지가 없어요.'));
+ el.append(upl('+ 배경 이미지 추가 (끌어다 놓기 · 클릭)',f=>addImgs(f,'b')),list)}
+function sideCast(el){const ab=h('button',{c:'main'},'+ 캐릭터 추가'),list=h('div',{c:'lib'});
+ ab.onclick=()=>{const id='c'+S.cseq++;S.cast[id]={id,name:ucast('캐릭터 '+id.slice(1))};op[id]=true;save();side()};
+ Object.values(S.cast).forEach(c=>{const ps=poses(c.id),isO=op[c.id]!==false,tg=h('button',{},isO?'▾':'▸'),x=h('button',{title:'캐릭터 삭제'},'×'),
+   nm=h('input',{c:'nm chn',type:'text',value:c.name,readonly:''}),hd=h('div',{c:'ch',draggable:'true',title:'더블클릭: 이름 변경 · 끌어서 장면에 넣기'},tg,nm,x);
+  tg.onclick=()=>{op[c.id]=!isO;side()};x.onclick=()=>delChar(c);
+  hd.ondragstart=e=>e.dataTransfer.setData('text/plain','vn:c:'+c.id);
+  const fin=ok=>{if(nm.readOnly)return;const v=nm.value.trim();nm.readOnly=true;
+   if(ok&&v&&v!=c.name){if(Object.values(S.cast).some(o=>o!=c&&o.name==v))toast('이미 있는 캐릭터 이름이라 원래 이름으로 되돌렸어요.');else{c.name=v;save();render()}}
+   nm.value=c.name;getSelection()?.removeAllRanges()};
+  hd.ondblclick=e=>{if(e.target.closest('button'))return;nm.readOnly=false;nm.focus();nm.select()};nm.onblur=()=>fin(true);
+  nm.onkeydown=e=>{if(e.key=='Enter')nm.blur();if(e.key=='Escape')fin(false)};
+  const card=h('div',{c:'cc'},hd);
+  if(isO){const g=h('div',{c:'pg'});
+   ps.forEach(([id,i])=>{const px=h('i',{},'×'),it=h('div',{c:'po',draggable:'true',title:i.name+' (끌어서 장면에 넣으면 이 포즈로 들어가요)'},h('img',{src:i.thumb||i.data}),h('span',{},i.name),px);
+    it.ondragstart=e=>{e.stopPropagation();e.dataTransfer.setData('text/plain','vn:p:'+id)};px.onclick=e=>{e.stopPropagation();delPose(id)};g.append(it)});
+   if(!ps.length)g.append(h('small',{},'포즈 이미지를 추가하세요.'));
+   card.append(g,upl('+ 포즈 이미지 추가 (끌어다 놓기 · 클릭)',f=>addImgs(f,'c',c.id)))}
+  list.append(card)});
+ if(!list.children.length)list.append(h('small',{},'아직 캐릭터가 없어요.'));
+ el.append(ab,list)}
+const dd=e=>{const[,t,id]=(e.dataTransfer.getData('text/plain')||'').split(':');return[t,id]};
+function slot(label,kind,cb,kids){const d=h('div',{c:'dz'},...kids,label);
+ d.ondragover=e=>{e.preventDefault();d.classList.add('over')};d.ondragleave=()=>d.classList.remove('over');
+ d.ondrop=e=>{e.preventDefault();d.classList.remove('over');const[t,id]=dd(e);
+  if(kind=='b'){if(t!='b'||!S.images[id])return toast('왼쪽 "배경 이미지" 탭의 이미지를 끌어다 놓아주세요.');cb(id)}
+  else{if((t=='c'&&S.cast[id])||(t=='p'&&S.images[id]))cb(t,id);else toast('왼쪽 "캐릭터" 탭의 캐릭터나 포즈를 끌어다 놓아주세요.')}};
+ d.onclick=()=>pick(kind,cb);return d}
+function pickGrid(title,items,cb,empty){const g=h('div',{c:'pk'});
+ items.forEach(it=>{const c=h('div',{title:it.name},h('img',{src:it.src}),it.name);c.onclick=()=>{document.querySelector('.pn')?.remove();cb(it.id)};g.append(c)});
+ if(!items.length)g.append(empty);
+ const cl=h('button',{},'닫기'),p=h('div',{c:'pn'},h('div',{c:'pb'},h('b',{},title),g,h('div',{c:'row'},cl)));cl.onclick=()=>p.remove();document.body.append(p)}
+function pick(kind,cb){
+ if(kind=='b')pickGrid('배경 이미지 선택',Object.entries(S.images).filter(([,i])=>i.kind=='b').map(([id,i])=>({id,name:i.name,src:i.thumb||i.data})),cb,'사이드바에서 배경 이미지를 먼저 추가해 주세요.');
+ else pickGrid('캐릭터 선택',Object.values(S.cast).filter(c=>poses(c.id).length).map(c=>{const i=poses(c.id)[0][1];return{id:c.id,name:c.name,src:i.thumb||i.data}}),cid=>cb('c',cid),'사이드바의 "캐릭터" 탭에서 캐릭터를 만들고 포즈 이미지를 먼저 추가해 주세요.')}
+const pickPose=(cid,cb)=>pickGrid(S.cast[cid].name+' 포즈 선택',poses(cid).map(([id,i])=>({id,name:i.name,src:i.thumb||i.data})),cb,'이 캐릭터에는 포즈 이미지가 없어요.');
+const clearSel=()=>document.querySelector('.ed')?.remove();
+function selEdge(m,x,y){clearSel();const b=h('button',{c:'ed',style:`left:${x}px;top:${y}px;transform:translate(-50%,-130%) scale(${1/z})`},'삭제');b.onclick=()=>{setL(m.n,m.k,null);clearSel();save();edges()};world.append(b)}
+document.addEventListener('mousedown',e=>{if(!(e.target.closest&&e.target.closest('.ed'))&&!(e.target.classList&&e.target.classList.contains('hit')))clearSel()},true);
+const apply=()=>world.style.transform=`translate(${pan.x}px,${pan.y}px) scale(${z})`;
+const P=el=>{const r=el.getBoundingClientRect(),w=world.getBoundingClientRect();return[(r.left+r.width/2-w.left)/z,(r.top+r.height/2-w.top)/z]};
+function line([x1,y1],[x2,y2],m){const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',`M${x1} ${y1}C${x1+70} ${y1} ${x2-70} ${y2} ${x2} ${y2}`);
+ if(m){const q=p.cloneNode();q.setAttribute('class','hit');q.onmousedown=e=>e.stopPropagation();q.onclick=e=>{const w=world.getBoundingClientRect();selEdge(m,(e.clientX-w.left)/z,(e.clientY-w.top)/z)};svg.append(q)}svg.append(p)}
+function edges(){svg.innerHTML='';S.nodes.forEach(n=>{(n.choices.length?n.choices.map((c,i)=>[i,c.next]):[['n',n.next]]).forEach(([k,t])=>{if(!t)return;const a=world.querySelector(`[data-o="${n.id}|${k}"]`),b=world.querySelector(`[data-i="${t}"]`);if(a&&b)line(P(a),P(b),{n,k})})})}
+function add(x,y,isEnd){const id='n'+S.seq++,n={id,name:uname((isEnd?'엔딩 ':'장면 ')+id.slice(1)),x:Math.round(x),y:Math.round(y),bg:null,bgm:'',se:'',chars:[],speaker:'',text:'',choices:[],next:null};if(isEnd){n.type='end';n.endMsg=''}S.nodes.push(n);if(!S.start&&!isEnd)S.start=n.id;save();render()}
+function del(n){const snap=JSON.stringify({...S,images:null,audio:null,uiAssets:null});S.nodes=S.nodes.filter(m=>m!=n);S.nodes.forEach(m=>{if(m.next==n.id)m.next=null;m.choices.forEach(c=>{if(c.next==n.id)c.next=null})});if(S.start==n.id)S.start=S.nodes[0]?.id||null;save();render();toast('장면을 삭제했습니다.',()=>restore(snap))}
+const thumb=(id,rm)=>{const x=h('i',{},'×');x.onclick=e=>{e.stopPropagation();rm()};return h('span',{c:'th'},h('img',{src:S.images[id]?.thumb||S.images[id]?.data||''}),x)};
+const port=(n,k)=>{const p=h('span',{c:'pt','data-o':n.id+'|'+k});p.onmousedown=e=>{e.preventDefault();e.stopPropagation();setL(n,k,null);D={t:'link',n,k,pt:p};edges()};return p};
+const redo=()=>{save();render()};
+const EMP=[['none','없음'],['near','가까이 보이기'],['far','멀리 보이기'],['jump','점프 뛰기'],['shake','좌우로 흔들기']];
+function ent(n,x,j){const cs=S.cast[x.c],im=S.images[x.p];if(!cs||!im)return h('span');
+ const rm=h('button',{title:'장면에서 빼기'},'×'),pic=h('div',{c:'ce',title:'클릭해서 포즈 바꾸기'},h('img',{src:im.thumb||im.data}),h('span',{},cs.name+' · '+im.name));
+ const sel=h('select',{title:'이 장면에서 이 캐릭터를 강조하는 효과'},...EMP.map(([v,l])=>h('option',{value:v},l)));
+ sel.value=x.e||'none';sel.onchange=()=>{x.e=sel.value;save()};
+ rm.onclick=()=>{n.chars.splice(j,1);redo()};pic.onclick=()=>pickPose(x.c,id=>{x.p=id;redo()});
+ const mv=(d,t,tip)=>{const b=h('button',{title:tip},t);b.disabled=j+d<0||j+d>=n.chars.length;b.onclick=()=>{[n.chars[j],n.chars[j+d]]=[n.chars[j+d],n.chars[j]];redo()};return b};
+ return h('div',{c:'cr v'},h('div',{c:'crt'},pic,mv(-1,'▲','앞으로 (화면에서 더 왼쪽)'),mv(1,'▼','뒤로 (화면에서 더 오른쪽)'),rm),h('label',{c:'em'},'강조',sel))}
+function addChar(n,t,id){let cid,pid;
+ if(t=='p'){cid=S.images[id].char;pid=id}else{cid=id;const p=poses(cid)[0];if(!p)return toast('이 캐릭터에는 아직 포즈 이미지가 없어요.');pid=p[0]}
+ const ex=n.chars.find(x=>x.c==cid);
+ if(ex){if(t=='p'){ex.p=pid;redo()}else toast('이미 이 장면에 있는 캐릭터예요. 캐릭터를 클릭하면 포즈를 바꿀 수 있어요.');return}
+ n.chars.push({c:cid,p:pid,e:'none'});redo()}
+function continueFrom(n){
+ // 자리 찾기: 오른쪽에 두되, 이미 다른 장면이 있으면 아래로 내림
+ const cur=world.querySelector(`[data-id="${n.id}"]`),stepY=(cur?cur.offsetHeight:600)+40;
+ let x=n.x+300,y=n.y,tries=0;
+ while(tries++<20&&S.nodes.some(m=>Math.abs(m.x-x)<264&&Math.abs(m.y-y)<200))y+=stepY;
+ // 배경과 캐릭터 구성만 복사 (배경음 변경과 효과음은 한 번만 일어나는 일이라 복사하지 않음,
+ // 점프와 흔들기도 다시 재생되지 않도록 빼고, 가까이/멀리 같은 상태는 유지)
+ const id='n'+S.seq++,m={id,name:uname('장면 '+id.slice(1)),x,y,bg:n.bg,bgm:'',se:'',
+  chars:n.chars.map(c=>({c:c.c,p:c.p,e:c.e==='near'||c.e==='far'?c.e:'none'})),speaker:'',text:'',choices:[],next:null};
+ // 선택지가 없으면 바로 연결. 원래 이어지던 장면이 있었다면 그 사이에 끼워 넣음
+ if(!n.choices.length){m.next=n.next;n.next=id}
+ S.nodes.push(m);save();render();
+ // 새 장면이 화면 밖이면 보이도록 이동하고, 바로 대사를 쓸 수 있게 커서를 둠
+ const sx=x*z+pan.x,sy=y*z+pan.y;
+ if(sx<20||sx+264*z>view.clientWidth-20||sy<20||sy>view.clientHeight-200){pan.x=view.clientWidth/2-(x+132)*z;pan.y=80-y*z;apply()}
+ const box=world.querySelector(`[data-id="${id}"] textarea`);if(box)box.focus({preventScroll:true});
+ if(n.choices.length)toast('선택지가 있는 장면이라 자동으로 연결하지 않았어요. 원하는 선택지에서 직접 이어 주세요.')}
+function endEl(n){
+ const db=h('button',{},'×');db.onclick=()=>del(n);
+ const nmI=h('input',{c:'nm',type:'text',value:n.name,readonly:'',title:'더블클릭해서 이름 바꾸기'});
+ const fin=ok=>{if(nmI.readOnly)return;const v=nmI.value.trim();nmI.readOnly=true;
+  if(ok&&v&&v!=n.name){if(S.nodes.some(m=>m!=n&&m.name==v))toast('이미 있는 이름이라 원래 이름으로 되돌렸어요.');else{n.name=v;save()}}
+  nmI.value=n.name;getSelection()?.removeAllRanges()};
+ nmI.ondblclick=()=>{nmI.readOnly=false;nmI.focus();nmI.select()};nmI.onblur=()=>fin(true);
+ nmI.onkeydown=e=>{if(e.key=='Enter')nmI.blur();if(e.key=='Escape')fin(false)};
+ const hd=h('div',{c:'h'},h('span',{c:'pt ip','data-i':n.id}),nmI,db);
+ hd.onmousedown=e=>{if(e.target.tagName=='BUTTON'||(e.target.tagName=='INPUT'&&!e.target.readOnly))return;e.preventDefault();D={t:'node',n,el,x:e.clientX,y:e.clientY,nx:n.x,ny:n.y}};
+ const tx=h('textarea',{placeholder:'비워 두면 "끝"이 나와요'},n.endMsg||'');tx.oninput=()=>{n.endMsg=tx.value;save()};
+ const el=h('div',{c:'n end','data-id':n.id,style:`left:${n.x}px;top:${n.y}px`},hd,
+  h('div',{c:'b'},h('label',{},'엔딩 메시지'),tx,h('small',{c:'ul'},'이 장면에 오면 화면이 어두워지고 이 메시지가 나온 뒤 이야기가 끝나요.')));
+ return el}
+function nodeEl(n){if(n.type==='end')return endEl(n);
+ const sb=h('button',{},S.start==n.id?'▶ 시작 장면':'시작으로');sb.onclick=()=>{S.start=n.id;redo()};
+ const db=h('button',{},'×');db.onclick=()=>del(n);
+ const nmI=h('input',{c:'nm',type:'text',value:n.name,readonly:'',title:'더블클릭해서 이름 바꾸기'});
+ const fin=ok=>{if(nmI.readOnly)return;const v=nmI.value.trim();nmI.readOnly=true;
+  if(ok&&v&&v!=n.name){if(S.nodes.some(m=>m!=n&&m.name==v))toast('이미 있는 이름이라 원래 이름으로 되돌렸어요.');else{n.name=v;save()}}
+  nmI.value=n.name;getSelection()?.removeAllRanges()};
+ nmI.ondblclick=()=>{nmI.readOnly=false;nmI.focus();nmI.select()};nmI.onblur=()=>fin(true);
+ nmI.onkeydown=e=>{if(e.key=='Enter')nmI.blur();if(e.key=='Escape')fin(false)};
+ const hd=h('div',{c:'h'},h('span',{c:'pt ip','data-i':n.id}),nmI,sb,db);
+ hd.onmousedown=e=>{if(e.target.tagName=='BUTTON'||(e.target.tagName=='INPUT'&&!e.target.readOnly))return;e.preventDefault();D={t:'node',n,el,x:e.clientX,y:e.clientY,nx:n.x,ny:n.y}};
+ const sp=h('input',{type:'text',placeholder:'예: 유나',value:n.speaker});sp.oninput=()=>{n.speaker=sp.value;save()};
+ const tx=h('textarea',{placeholder:'대사를 입력하세요'},n.text);tx.oninput=()=>{n.text=tx.value;save()};
+ const body=h('div',{c:'b'},
+  h('label',{},'배경 이미지'),slot(n.bg?'':'사이드바 이미지를 끌어다 놓기 · 클릭해서 선택','b',id=>{n.bg=id;redo()},n.bg?[thumb(n.bg,()=>{n.bg=null;redo()})]:[]),
+  h('label',{},'배경음 변경'),aSel(n,'bgm',[['','없음 (지금 배경음 유지)'],['__stop__','배경음 멈추기']]),
+  h('label',{},'효과음 출력'),aSel(n,'se',[['','없음']]),
+  h('label',{},'등장 캐릭터 (위쪽이 화면 왼쪽)'),...n.chars.map((x,j)=>ent(n,x,j)),slot('+ 캐릭터 추가 (사이드바에서 끌어다 놓기 · 클릭)','c',(t,id)=>addChar(n,t,id),[]),
+  h('label',{},'말하는 사람'),sp,h('label',{},'대사'),tx,h('label',{},n.choices.length?'선택지 (선택지마다 다음 장면 연결)':'선택지 (없으면 아래 연결선으로 바로 이동)'));
+ n.choices.forEach((c,i)=>{const t=h('input',{type:'text',placeholder:'선택지 '+(i+1),value:c.text});t.oninput=()=>{c.text=t.value;save()};
+  const x=h('button',{},'×');x.onclick=()=>{n.choices.splice(i,1);redo()};body.append(h('div',{c:'c'},t,x,port(n,i)))});
+ if(!n.choices.length)body.append(h('div',{c:'c nx'},'다음 장면',port(n,'n')));
+ const ab=h('button',{},'+ 선택지 추가');ab.onclick=()=>{n.choices.push({text:'',next:null});n.next=null;redo()};body.append(ab);
+ const cb=h('button',{c:'cont',title:'같은 배경과 캐릭터로 새 장면을 만들고 바로 이어 줘요'},'▶ 다음 장면 이어 만들기');cb.onclick=()=>continueFrom(n);body.append(cb);
+ const el=h('div',{c:'n'+(S.start==n.id?' start':''),'data-id':n.id,style:`left:${n.x}px;top:${n.y}px`},hd,body);return el}
+function render(){clearSel();world.querySelectorAll('.n').forEach(e=>e.remove());S.nodes.forEach(n=>world.append(nodeEl(n)));edges()}
+document.onmousemove=e=>{if(!D)return;
+ if(D.t=='pan'){pan.x=D.px+e.clientX-D.x;pan.y=D.py+e.clientY-D.y;apply()}
+ else if(D.t=='node'){D.n.x=Math.round(D.nx+(e.clientX-D.x)/z);D.n.y=Math.round(D.ny+(e.clientY-D.y)/z);D.el.style.left=D.n.x+'px';D.el.style.top=D.n.y+'px';edges()}
+ else{edges();const w=world.getBoundingClientRect();line(P(D.pt),[(e.clientX-w.left)/z,(e.clientY-w.top)/z])}};
+document.onmouseup=e=>{if(!D)return;if(D.t=='link'){const t=e.target.closest('.n');if(t&&t.dataset.id!=D.n.id)setL(D.n,D.k,t.dataset.id)}const lk=D.t=='link';D=null;view.style.cursor='';document.body.classList.remove('pan');lk?redo():save()};
+view.onmousedown=e=>{if(e.target.closest('.n'))return;D={t:'pan',x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};view.style.cursor='grabbing';document.body.classList.add('pan');getSelection()?.removeAllRanges()};
+view.ondblclick=e=>{if(e.target.closest('.n'))return;const r=view.getBoundingClientRect();add((e.clientX-r.left-pan.x)/z-132,(e.clientY-r.top-pan.y)/z-20)};
+view.onwheel=e=>{if(e.target.closest('textarea'))return;e.preventDefault();const z0=z,r=view.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;z=Math.min(1.6,Math.max(.4,z*(e.deltaY<0?1.1:.9)));pan.x=mx-(mx-pan.x)*z/z0;pan.y=my-(my-pan.y)*z/z0;apply()};
+addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>e.preventDefault());
+function toast(msg,undo){document.querySelectorAll('.toast').forEach(x=>x.remove());const t=h('div',{c:'toast'},msg);if(undo){const b=h('button',{},'되돌리기');b.onclick=()=>{undo();t.remove()};t.append(b)}document.body.append(t);setTimeout(()=>t.remove(),7000)}
+function panel(title,text,o={}){document.querySelector('.pn')?.remove();const big=text.length>3e6;
+ const ta=h('textarea',{spellcheck:'false'},text),row=h('div',{c:'row'}),btn=(l,f,c)=>{const b=h('button',{c:c||''},l);b.onclick=f;row.append(b)};
+ if(big)ta.style.cssText='height:1px;min-height:0;opacity:0;padding:0;border:0;resize:none';
+ if(o.ok)btn(o.okLabel,()=>{if(o.ok(ta.value))p.remove()},'main');
+ else btn('복사하기',()=>{ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+  if(ok)toast('복사했습니다.');else if(navigator.clipboard)navigator.clipboard.writeText(ta.value).then(()=>toast('복사했습니다.'),()=>toast('Ctrl+C로 복사해 주세요.'));else toast('Ctrl+C로 복사해 주세요.')},'main');
+ if(o.file)btn('파일로 저장',()=>dl(o.file,text));
+ if(o.pick)btn('파일 선택',()=>$('#file').click());
+ btn('닫기',()=>p.remove());
+ const p=h('div',{c:'pn'},h('div',{c:'pb'},h('b',{},title),big?h('p',{},'내용이 커서(약 '+(text.length/1048576).toFixed(1)+'MB) 미리보기는 생략했어요. "파일로 저장"이나 "복사하기"를 쓰세요.'):'',ta,row));document.body.append(p);ta.focus();if(!o.ok)ta.select()}
+function importText(t){try{const o=JSON.parse(t);if(!o.nodes)throw 0;S=o;norm()}catch(x){toast('이 에디터에서 저장한 프로젝트가 아닙니다.');return false}save();saveImgs();render();side();return true}
+const dl=(name,txt,type='application/json')=>h('a',{href:URL.createObjectURL(new Blob([txt],{type})),download:name}).click();
+$('#add').onclick=()=>{const k=(S.nodes.length%6)*26;add((view.clientWidth/2-pan.x)/z-132+k,(view.clientHeight/4-pan.y)/z+k)};
+$('#addEnd').onclick=()=>{const k=(S.nodes.length%6)*26;add((view.clientWidth/2-pan.x)/z-132+k,(view.clientHeight/4-pan.y)/z+k,true)};
+$('#sv').onclick=()=>panel('프로젝트 저장 (다시 편집할 때 쓰는 파일)',JSON.stringify(S),{file:'project.vnproj.json'});
+$('#ld').onclick=()=>panel('프로젝트 불러오기','',{pick:1,okLabel:'붙여넣은 내용 불러오기',ok:importText});
+$('#file').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;f.text().then(t=>{if(importText(t))document.querySelector('.pn')?.remove()})};
+function buildExport(inc){const nm=id=>id?S.images[id]?.name:null;
+ const img=i=>inc?{name:i.name,data:i.data}:{name:i.name};
+ const o={title:S.title||'',start:S.start,ui:Object.fromEntries(UIS.map(([k])=>[k,S.uiAssets[k]?img(S.uiAssets[k]):null])),audio:Object.values(S.audio).map(a=>img(a)),characters:Object.values(S.cast).map(c=>({name:c.name,poses:poses(c.id).map(([,i])=>img(i))})),backgrounds:Object.values(S.images).filter(i=>i.kind=='b').map(i=>img(i)),nodes:S.nodes.map(n=>({id:n.id,name:n.name,type:n.type==='end'?'ending':'scene',endMessage:n.type==='end'?(n.endMsg||''):'',background:nm(n.bg),characters:n.chars.map(x=>({character:S.cast[x.c].name,pose:S.images[x.p].name,emphasis:x.e||'none'})),bgmAction:n.bgm=='__stop__'?'stop':n.bgm?'play':'keep',bgm:n.bgm&&n.bgm!='__stop__'?(S.audio[n.bgm]?.name||''):'',se:n.se?(S.audio[n.se]?.name||''):'',speaker:n.speaker,text:n.text,next:n.choices.length?null:n.next,choices:n.choices.map(c=>({text:c.text,next:c.next}))}))};
+ return o}
+$('#ex').onclick=()=>{if(!S.nodes.length)return toast('내보낼 장면이 없습니다.');panel('게임용 JSON (Unity에서 읽는 파일)',JSON.stringify(buildExport($('#inc').checked),null,2),{file:'story.json'})};
+
+/* ── 바로 플레이 / 배포용 파일 ── 에디터와 같은 폴더에 플레이어 파일이 있어야 합니다 */
+const PLAYER_URL='vn-player.html';
+let previewWin=null,previewPayload=null;
+addEventListener('message',e=>{if(!previewWin||e.source!==previewWin||!e.data||e.data.type!=='vn-player-ready'||!previewPayload)return;
+ try{previewWin.postMessage(previewPayload,'*')}catch(x){toast('플레이어 창에 이야기를 보내지 못했어요.')}});
+$('#pl').onclick=()=>{if(!S.nodes.length)return toast('플레이할 장면이 없습니다.');
+ previewPayload={type:'vn-story',story:buildExport(true),title:''};
+ previewWin=window.open(PLAYER_URL+'?preview='+Date.now()+'#preview','vnPreview');
+ if(!previewWin)return toast('새 창이 막혔어요. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+ try{previewWin.focus()}catch(x){}};
+$('#dist').onclick=async()=>{if(!S.nodes.length)return toast('배포할 장면이 없습니다.');
+ let html;
+ try{const r=await fetch(PLAYER_URL,{cache:'no-cache'});if(!r.ok)throw 0;html=await r.text()}
+ catch(x){return toast('플레이어 파일('+PLAYER_URL+')을 불러오지 못했어요. 두 파일을 같은 폴더에 두고 웹 서버에서 열어 주세요.')}
+ const at=html.indexOf('<script>');
+ if(at<0||html.includes('id="vn-embedded-story"'))return toast('플레이어 파일 형식이 예상과 달라요. 원본 '+PLAYER_URL+'을 써 주세요.');
+ const json=JSON.stringify(buildExport(true)).replace(/</g,'\\u003c');
+ const out=html.slice(0,at)+'<script id="vn-embedded-story" type="application/json">'+json+'<\/script>\n'+html.slice(at);
+ const name=(S.title||'').trim().replace(/[\\/:*?"<>|]/g,'').slice(0,60)||'my-visual-novel';
+ dl(name+'.html',out,'text/html');
+ toast('배포용 파일을 만들었어요. 이 파일 하나만 보내면 누구나 바로 플레이할 수 있어요.')};
+try{S=JSON.parse(localStorage.getItem('vnEditor'))}catch(e){}
+idb('readonly',s=>s.get('assets')).then(a=>{
+ if(S&&S.nodes){
+  if(a){S.images=a.images||{};S.audio=a.audio||{};S.uiAssets=a.uiAssets||{}}
+  else{try{S.images=JSON.parse(localStorage.getItem('vnEditorImg'))||{}}catch(e){S.images={}}}
+  norm();render();if(!a&&Object.keys(S.images).length)saveImgs()}
+ else{S={nodes:[],images:{},cast:{},audio:{},uiAssets:{},title:'',start:null,seq:1,iseq:1,cseq:1,aseq:1};add(60,60)}
+ apply();side()});
+</script></body></html>
