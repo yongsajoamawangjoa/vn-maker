@@ -253,7 +253,7 @@ function nodeEl(n){if(n.type==='end')return endEl(n);
  nmI.onkeydown=e=>{if(e.key=='Enter')nmI.blur();if(e.key=='Escape')fin(false)};
  const hd=h('div',{c:'h'},h('span',{c:'pt ip','data-i':n.id}),nmI,sb,db);
  hd.onmousedown=e=>{if(e.target.tagName=='BUTTON'||(e.target.tagName=='INPUT'&&!e.target.readOnly))return;e.preventDefault();D={t:'node',n,el,x:e.clientX,y:e.clientY,nx:n.x,ny:n.y}};
- const sp=h('input',{type:'text',placeholder:'예: 유나',value:n.speaker});sp.oninput=()=>{n.speaker=sp.value;save()};
+ const sp=h('input',{type:'text',placeholder:'예: 말포이',value:n.speaker});sp.oninput=()=>{n.speaker=sp.value;save()};
  const tx=h('textarea',{placeholder:'대사를 입력하세요'},n.text);tx.oninput=()=>{n.text=tx.value;save()};
  const body=h('div',{c:'b'},
   h('label',{},'배경 이미지'),slot(n.bg?'':'사이드바 이미지를 끌어다 놓기 · 클릭해서 선택','b',id=>{n.bg=id;redo()},n.bg?[thumb(n.bg,()=>{n.bg=null;redo()})]:[]),
